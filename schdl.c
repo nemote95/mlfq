@@ -5,7 +5,7 @@
 
 int time;
 
-//proc struct
+//process struct
 struct proc {
 	int pid;
 	int execution_time;
@@ -19,7 +19,7 @@ struct cpu {
 	struct list_head queue;
 };
 
-//add proc node to a queue
+//insert process node to a queue
 void add_node(int pid,int execution_time, struct list_head *head)
 {
     struct proc *procPtr = (struct proc *)malloc(sizeof(struct proc));
@@ -31,20 +31,31 @@ void add_node(int pid,int execution_time, struct list_head *head)
     list_add_tail(&procPtr->list_member, head);
 }
 
-//display queue elements (proccess id and execution time
+//display queue elements (proccess id and execution time)
 void display(struct list_head *head)
 {
     struct list_head *iter;
     struct proc *objPtr;
     __list_for_each(iter, head) {
         objPtr = list_entry(iter, struct proc, list_member);
-        printf("%d ", objPtr->pid);
+        printf("p%d ", objPtr->pid);
         printf("%d|", objPtr->execution_time);
     }
     printf("\n");
 }
 
-//fifo level 
+//display the state of cpus
+void display_all(struct cpu **array,int length)
+{
+	int i;
+	for(i=0;i<length;i++){
+		printf("cpu %d : " ,i);
+		display(&array[i]->queue);
+		printf("\n");}
+}
+	
+
+//fifo level algorithm
 void FIFO(struct list_head *head){
 	struct list_head *iter;
     struct proc *objPtr;
@@ -56,19 +67,28 @@ void FIFO(struct list_head *head){
 		free(objPtr);
         goto redo;
     }
+    printf("time : %d \n",time);
+	display(head);
+	printf("--- \n");
+    
 }
 
-
+//main MLFQ shcedual algorithm 
 void schedual(struct cpu **array,int length){
 	int i;
-	for(i=0;i<length-1;i++){
+	for(i=0;i<length-1;i++)
+	{
+		
 	struct list_head *head1=&array[i]->queue;
 	struct list_head *head2=&array[i+1]->queue;
+	
 	struct list_head *iter;
     struct proc *objPtr;
    	redo:
     __list_for_each(iter,head1) {
 		printf("time : %d \n",time);
+		display_all(array,length);
+		printf("--- \n");
 		objPtr = list_entry(iter, struct proc, list_member);
 		int q=array[i]->quantum_time;
 		while ( q && objPtr->execution_time){
