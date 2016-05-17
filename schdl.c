@@ -5,76 +5,78 @@
 
 int time;
 
-//process struct
-struct proc {
-	int pid;
-	int execution_time;
-	struct list_head list_member;
-};
-
 //cpu struct
-struct cpu {
+struct cpu_core {
 	int cid;
 	int quantum_time;
 	struct list_head queue;
 };
 
+//process struct
+struct process {
+	int pid;
+	char status;
+	int execution_time;
+	struct list_head node;
+};
+
 //insert process node to a queue
-void add_node(int pid,int execution_time, struct list_head *head)
+void insert(int pid,int execution_time, char status,struct list_head *head)
 {
-    struct proc *procPtr = (struct proc *)malloc(sizeof(struct proc));
-    assert(procPtr != NULL);
+    struct process *processPtr = (struct process *)malloc(sizeof(struct process));
+    assert(processPtr != NULL);
     
-    procPtr->pid = pid;
-    procPtr->execution_time = execution_time;
-    INIT_LIST_HEAD(&procPtr->list_member);
-    list_add_tail(&procPtr->list_member, head);
+    processPtr->pid = pid;
+    processPtr->status = status;
+    processPtr->execution_time = execution_time;
+    INIT_LIST_HEAD(&processPtr->node);
+    list_add_tail(&processPtr->node, head);
 }
 
 //display queue elements (proccess id and execution time)
-void display(struct list_head *head)
+void print_queu_state(struct list_head *head)
 {
     struct list_head *iter;
-    struct proc *objPtr;
+    struct process *objPtr;
     __list_for_each(iter, head) {
-        objPtr = list_entry(iter, struct proc, list_member);
-        printf("p%d ", objPtr->pid);
+        objPtr = list_entry(iter, struct process, node);
+        printf("p%d:", objPtr->pid);
+        printf(" %c ", objPtr->status);
         printf("%d|", objPtr->execution_time);
     }
     printf("\n");
 }
 
-//display the state of cpus
-void display_all(struct cpu **array,int length)
+//display the state of cpu_cores
+void print_total_state(struct cpu_core **array,int length)
 {
 	int i;
 	for(i=0;i<length;i++){
-		printf("cpu %d : " ,i);
-		display(&array[i]->queue);
-		printf("\n");}
+		printf("cpu_core %d : " ,i);
+		print_queu_state(&array[i]->queue);}
 }
 	
 
 //fifo level algorithm
 void FIFO(struct list_head *head){
 	struct list_head *iter;
-    struct proc *objPtr;
+    struct process *objPtr;
    	redo:
     __list_for_each(iter,head) {
-        objPtr = list_entry(iter, struct proc, list_member);
+        objPtr = list_entry(iter, struct process, node);
         time+=objPtr->execution_time;
-		list_del(&objPtr->list_member);
+		list_del(&objPtr->node);
 		free(objPtr);
         goto redo;
     }
     printf("time : %d \n",time);
-	display(head);
-	printf("--- \n");
+	print_queu_state(head);
+	printf("---------- \n");
     
 }
 
 //main MLFQ shcedual algorithm 
-void schedual(struct cpu **array,int length){
+void schedual(struct cpu_core **array,int length){
 	int i;
 	for(i=0;i<length-1;i++)
 	{
@@ -83,13 +85,17 @@ void schedual(struct cpu **array,int length){
 	struct list_head *head2=&array[i+1]->queue;
 	
 	struct list_head *iter;
-    struct proc *objPtr;
+    struct process *objPtr;
    	redo:
     __list_for_each(iter,head1) {
+		objPtr = list_entry(iter, struct process, node);
+		objPtr->status='r';
+		//print the status
 		printf("time : %d \n",time);
-		display_all(array,length);
-		printf("--- \n");
-		objPtr = list_entry(iter, struct proc, list_member);
+		print_total_state(array,length);
+		printf("---------- \n");
+		//
+		
 		int q=array[i]->quantum_time;
 		while ( q && objPtr->execution_time){
 		q--;
@@ -97,9 +103,9 @@ void schedual(struct cpu **array,int length){
 		objPtr->execution_time--;}
         int pid=objPtr->pid;
         int execution_time=objPtr->execution_time;
-		list_del(&objPtr->list_member);
+		list_del(&objPtr->node);
 		free(objPtr);
-        if (execution_time>0 && head2){add_node(pid,execution_time,head2);}
+        if (execution_time>0 && head2){insert(pid,execution_time,'w',head2);}
         goto redo;}
         
     }
@@ -109,24 +115,24 @@ void schedual(struct cpu **array,int length){
 	
 int main() 
 {
-	//struct cpus
-	struct cpu *array[3];
+	//struct cpu cores
+	struct cpu_core *array[3];
 	int length=3;
 	int i;
 	for (i=0;i<length;i++){
-		struct cpu *cpuPtr1 = (struct cpu *)malloc(sizeof(struct cpu));
-		assert(cpuPtr1 != NULL);
-		INIT_LIST_HEAD(&cpuPtr1->queue);
-		cpuPtr1->cid=i;
-		cpuPtr1->quantum_time=(i+1)*4;
-		array[i]=cpuPtr1;
+		struct cpu_core *cpu_corePtr = (struct cpu_core *)malloc(sizeof(struct cpu_core));
+		assert(cpu_corePtr != NULL);
+		INIT_LIST_HEAD(&cpu_corePtr->queue);
+		cpu_corePtr->cid=i;
+		cpu_corePtr->quantum_time=(i+1)*4;
+		array[i]=cpu_corePtr;
 		}
 	
-    //add process nodes to the first cpu queue
-    add_node(1,10, &array[0]->queue);
-    add_node(2,15, &array[0]->queue);
-    add_node(3,20, &array[0]->queue);
-    add_node(4,25, &array[0]->queue);
+    //add process nodes to the first cpu_core queue
+    insert(1,10,'w', &array[0]->queue);
+    insert(2,15,'w', &array[0]->queue);
+    insert(3,20,'w', &array[0]->queue);
+    insert(4,25,'w', &array[0]->queue);
     
     schedual(array,length);
     
